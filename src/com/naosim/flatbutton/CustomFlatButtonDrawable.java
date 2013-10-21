@@ -7,6 +7,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region.Op;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 
 public class CustomFlatButtonDrawable extends Drawable {
 	private PaintSet mPaintSet;
@@ -16,74 +17,78 @@ public class CustomFlatButtonDrawable extends Drawable {
 	@Override
 	public void draw(Canvas canvas) {
 		// background
-		drawRoundRect(canvas, mPaintSet.backgroundPaint);
+		Rect bounds = canvas.getClipBounds();
+		drawRoundRect(canvas, bounds, mPaintSet.backgroundPaint);
 		
-		// left
-		clipLeftSide(canvas);
-		drawRoundRect(canvas, mPaintSet.leftBorderPaint);
-		
-		//right
-		clipRightSide(canvas);
-		drawRoundRect(canvas, mPaintSet.rightBorderPaint);
-		
-		// top
-		clipBottom(canvas);
-		drawRoundRect(canvas, mPaintSet.bottomBorderPaint);
-		
-		// bottom
-		clipTop(canvas);
-		drawRoundRect(canvas, mPaintSet.topBorderPaint);
-		clearClip(canvas);
+		if(Build.VERSION.SDK_INT < 18) {
+			// left
+			clipLeftSide(canvas, bounds);
+			drawRoundRect(canvas, bounds, mPaintSet.leftBorderPaint);
+			//right
+			clipRightSide(canvas, bounds);
+			drawRoundRect(canvas, bounds, mPaintSet.rightBorderPaint);
+			// top
+			clipTop(canvas, bounds);
+			drawRoundRect(canvas, bounds, mPaintSet.topBorderPaint);
+			// bottom
+			clipBottom(canvas, bounds);
+			drawRoundRect(canvas, bounds, mPaintSet.bottomBorderPaint);
+			clearClip(canvas, bounds);
+		} else {
+			// API18だと、clip系で挙動がおかしくなるので、枠線を書くだけにする
+			drawRoundRect(canvas, bounds, mPaintSet.bottomBorderPaint);
+		}
 	}
 	
 	private static final int PADDING = 1;
 	private static final int RADIUS = 2;
-	public static void drawRoundRect(Canvas canvas, Paint paint) {
+	public static void drawRoundRect(Canvas canvas, Rect bounds, Paint paint) {
+		
 		canvas.drawRoundRect(
-				new RectF(PADDING, PADDING, canvas.getWidth() - PADDING, canvas.getHeight() - PADDING), RADIUS, RADIUS, paint);
+				new RectF(bounds.left + PADDING, bounds.top + PADDING, bounds.right - PADDING, bounds.bottom - PADDING), RADIUS, RADIUS, paint);
+	}
+		
+	public void clearClip(Canvas canvas, Rect bounds) {
+		canvas.clipRect(bounds, Op.REPLACE);
 	}
 	
-	public void clearClip(Canvas canvas) {
-		canvas.clipRect(new Rect(0,  0, canvas.getWidth(), canvas.getHeight()), Op.REPLACE);
-	}
-	
-	public void clipTop(Canvas canvas) {
-		clearClip(canvas);
+	public void clipTop(Canvas canvas, Rect bounds) {
+		clearClip(canvas, bounds);
 		Rect r = new Rect(
-				1, 
-				0, 
-				canvas.getWidth() - 1,
-				3);
+				bounds.left + 1, 
+				bounds.top, 
+				bounds.right - 1,
+				bounds.top+ 3);
 		canvas.clipRect(r);
 	}
 	
-	public void clipBottom(Canvas canvas) {
-		clearClip(canvas);
+	public void clipBottom(Canvas canvas, Rect bounds) {
+		clearClip(canvas, bounds);
 		Rect r = new Rect(
-				1, 
-				canvas.getHeight() - 2, 
-				canvas.getWidth() - 1,
-				canvas.getHeight());
+				bounds.left + 1, 
+				bounds.bottom - 2, 
+				bounds.right - 1,
+				bounds.bottom);
 		canvas.clipRect(r);
 	}
 	
-	public void clipLeftSide(Canvas canvas) {
-		clearClip(canvas);
+	public void clipLeftSide(Canvas canvas, Rect bounds) {
+		clearClip(canvas, bounds);
 		Rect r = new Rect(
-				0, 
-				2, 
-				2,
-				canvas.getHeight() - 2);
+				bounds.left, 
+				bounds.top + 2, 
+				bounds.left + 2,
+				bounds.bottom - 2);
 		canvas.clipRect(r);
 	}
 	
-	public void clipRightSide(Canvas canvas) {
-		clearClip(canvas);
+	public void clipRightSide(Canvas canvas, Rect bounds) {
+		clearClip(canvas, bounds);
 		Rect r = new Rect(
-				canvas.getWidth() - 2, 
-				2, 
-				canvas.getWidth(),
-				canvas.getHeight() - 2);
+				bounds.right - 2, 
+				bounds.top + 2, 
+				bounds.right,
+				bounds.bottom - 2);
 		canvas.clipRect(r);
 	}
 
